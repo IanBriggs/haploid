@@ -31,7 +31,7 @@ All binaries parse and output smt format, which can be given via a file on the c
 By default output is printed, but a file can be specified with `-o`
 
 ```
-> ./target/bin/haploid benchmarks/examples/example_0.smt2
+> ./target/release/haploid benchmarks/examples/example_0.smt2
 (declare-const principal_account String)
 (declare-const principal_partition Int)
 (declare-const principal_prefix Int)
