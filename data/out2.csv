@@ -1,0 +1,2 @@
+Benchmark,Size_Before,Size_After,Haploid_Time,Z3_Time_Before,Z3_Time_After,Z3_Speedup,Z3_Speedup_with_Haploid,Result_Before,Result_After
+/Sage2/bench_857.smt2,71479,69643,0.30491929966956377,252.31150528322905,274.3960471758619,0.9195158162082461,0.9184951495454724,unsat,unsat

@@ -63,6 +63,15 @@ define_language! {
 
         // Binary Operators
         "bvand" = BinaryAnd([Id; 2]),
+        "bvor" = BinaryOr([Id; 2]),
+        "bvxor" = BinaryXor([Id; 2]),
+        "bvnot" = BinaryNot([Id; 1]),
+        "bvneg" = BinaryNeg([Id; 1]),
+        "bvlshr" = BinaryShr([Id; 2]),
+        "bvshl" = BinaryShl([Id; 2]),
+        "bvmul" = BinaryMul([Id; 2]),
+        "bvsub" = BinarySub([Id; 2]),
+        "bvadd" = BinaryAdd([Id; 2]),
 
         // Weird forms that make auto parsing fail
         "!" = Attribute(Vec<Id>), // attribute is encoded as 1 id for the body, then 2*n pairs for the attributes

@@ -85,7 +85,30 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         // Binary Operators
         EggSmt::BinaryAnd(args) => {
             regroup_nary_left(nodes, args, "bvand", make_extractor!(EggSmt::BinaryAnd))
-        }
+        },
+        EggSmt::BinaryMul(args) => {
+            regroup_nary_left(nodes, args, "bvmul", make_extractor!(EggSmt::BinaryAnd))
+        },
+        EggSmt::BinaryOr(args) => {
+            regroup_nary_left(nodes, args, "bvor", make_extractor!(EggSmt::BinaryOr))
+        },
+        EggSmt::BinaryXor(args) => {
+            regroup_nary_left(nodes, args, "bvxor", make_extractor!(EggSmt::BinaryXor))
+        },
+        EggSmt::BinaryShr(args) => {
+            regroup_nary_left(nodes, args, "bvlshr", make_extractor!(EggSmt::BinaryShr))
+        },
+        EggSmt::BinaryShl(args) => {
+            regroup_nary_left(nodes, args, "bvshl", make_extractor!(EggSmt::BinaryShl))
+        },
+        EggSmt::BinaryAdd(args) => {
+            regroup_nary_left(nodes, args, "bvadd", make_extractor!(EggSmt::BinaryAdd))
+        },
+        EggSmt::BinarySub(args) => {
+            regroup_nary_left(nodes, args, "bvsub", make_extractor!(EggSmt::BinarySub))
+        },
+        EggSmt::BinaryNeg(args) => handle_application(nodes, "bvneg", args.as_ref()),
+        EggSmt::BinaryNot(args) => handle_application(nodes, "bvnot", args.as_ref()),
 
         // Other
         EggSmt::Attribute(packed) => handle_attribute(nodes, packed),

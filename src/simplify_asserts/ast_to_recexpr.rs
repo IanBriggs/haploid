@@ -114,7 +114,16 @@ fn term_to_nodes(term: &ast::Term, nodes: &mut Vec<EggSmt>) -> Id {
 
                         // Binary Operators
                         "bvand" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryAnd),
-
+                        "bvor" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryOr),
+                        "bvxor" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryXor),
+                        "bvnot" => EggSmt::BinaryNot(arg_ids.try_into().unwrap()),
+                        "bvneg" => EggSmt::BinaryNeg(arg_ids.try_into().unwrap()),
+                        "bvlshr" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryShr),
+                        "bvshl" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryShl),
+                        "bvmul" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryMul),
+                        "bvadd" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryAdd),
+                        "bvsub" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySub),
+                        
                         _ => EggSmt::Application(egg::Symbol::from(&symbol.0), arg_ids),
                     },
                     ast::Identifier::Indexed {

@@ -10,11 +10,12 @@ import shlex
 import shutil
 import subprocess
 import sys
-
+import z3
 import clean_query
+import pyboolector
 
 OUTFILE = None
-
+parsed_args = None
 
 def parse_args(argv):
     arg_parser = argparse.ArgumentParser(
@@ -25,7 +26,7 @@ def parse_args(argv):
 
     help = "Time limit in seconds, Haploid will be killed with SIGKILL"
     arg_parser.add_argument("--timeout", "-t", help=help,
-                            type=float, default=15.0)
+                            type=int, default=30)
 
     help = "Number of concurrent jobs to use"
     arg_parser.add_argument("--jobs", "-j", help=help, type=int, default=1)
@@ -40,6 +41,10 @@ def parse_args(argv):
     help = "A Haploid binary to use"
     arg_parser.add_argument("--haploid", help=help,
                             default="./target/release/haploid")
+
+    help = "Run Z3 before and after"
+    arg_parser.add_argument("--runz3", help=help,
+                            default=False)
 
     help = "Output file to use, if present will be used to continue data run"
     arg_parser.add_argument("--outfile", "-o", help=help)
@@ -58,11 +63,13 @@ def eprint(*args, **kwargs):
 
 def run(cmd, work_dir, timeout=None, stdin=None):
     command = shlex.split(cmd)
+    print(command)
     start_dir = os.getcwd()
     reached_timeout = False
     os.chdir(work_dir)
     proc = None
     try:
+        os.listdir(os.getcwd())
         start_time = time.perf_counter()
         proc = subprocess.Popen(command,
                                 stdin=subprocess.PIPE,
@@ -70,6 +77,11 @@ def run(cmd, work_dir, timeout=None, stdin=None):
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True)
         stdout, stderr = proc.communicate(input=stdin, timeout=timeout)
+    except PermissionError as e:
+        eprint(f"Unable to run command: '{command}")
+        eprint(f"Current directory: '{os.getcwd()}'")
+        eprint(f"Contents: '{os.listdir(os.getcwd())}'")
+        raise e
     except subprocess.TimeoutExpired:
         reached_timeout = True
         proc.kill()
@@ -77,6 +89,7 @@ def run(cmd, work_dir, timeout=None, stdin=None):
     except FileNotFoundError as e:
         eprint(f"Unable to run command: '{command}'")
         eprint(f"Current directory: '{os.getcwd()}'")
+        eprint(f"Contents: '{os.listdir(os.getcwd())}'")
         raise e
     finally:
         end_time = time.perf_counter()
@@ -89,6 +102,7 @@ def run(cmd, work_dir, timeout=None, stdin=None):
     elapsed = end_time - start_time
 
     return {
+        "stdin": stdin,
         "stdout": stdout,
         "stderr": stderr,
         "return_code": return_code,
@@ -97,7 +111,7 @@ def run(cmd, work_dir, timeout=None, stdin=None):
     }
 
 
-def count_asserts(query):
+# def count_asserts(query):
     # We want asserts that are not just binding a variable name to a value
     # TODO: this may remove too many asserts
     lines = query.splitlines()
@@ -127,27 +141,27 @@ def run_preprocessor(benchmark, preprocessor, work_dir, query, timeout):
     run_data = run(f"{preprocessor} --in", work_dir, timeout, query)
     run_data["benchmark"] = benchmark
 
-    if (run_data["return_code"] == -9
-            and run_data["reached_timeout"]):
-        run_data["asserts_left"] = None
-        return run_data
+    # if (run_data["return_code"] == -9
+    #        and run_data["reached_timeout"]):
+    #    run_data["asserts_left"] = None
+    #    return run_data
 
-    if run_data["return_code"] != 0:
-        eprint("-"*80)
-        eprint(f"Command failed: {preprocessor}")
-        eprint(f"Benchmark: {benchmark}")
-        eprint(f"return_code: {run_data['return_code']}")
-        eprint(f"stdout:\n{run_data['stdout']}")
-        eprint(f"stderr:\n{run_data['stderr']}")
-        eprint("-"*80)
-        run_data["asserts_left"] = None
-        return run_data
+    # if run_data["return_code"] != 0:
+    #    eprint("-"*80)
+    #    eprint(f"Command failed: {preprocessor}")
+    #    eprint(f"Benchmark: {benchmark}")
+    #    eprint(f"return_code: {run_data['return_code']}")
+    #    eprint(f"stdout:\n{run_data['stdout']}")
+    #    eprint(f"stderr:\n{run_data['stderr']}")
+    #    eprint("-"*80)
+    #    run_data["asserts_left"] = None
+    #    return run_data
 
-    if "(assert false)" in run_data["stdout"]:
-        run_data["asserts_left"] = 0
-        return run_data
+    # if "(assert false)" in run_data["stdout"]:
+    #    run_data["asserts_left"] = 0
+    #    return run_data
 
-    run_data["asserts_left"] = count_asserts(run_data["stdout"])
+    # run_data["asserts_left"] = count_asserts(run_data["stdout"])
     return run_data
 
 
@@ -157,19 +171,86 @@ def results_to_row(results=None, prefix=""):
     # if no data is present return the header
     if results == None:
         columns.extend(
-            ["Benchmark", "AssertsBefore", "AssertsLeft", "Time", "Result"])
+            ["Benchmark", "Size_Before", "Size_After", "Haploid_Time", "Z3_Time_Before", "Z3_Time_After", "Z3_Speedup", "Z3_Speedup_with_Haploid", "Result_Before", "Result_After"])
+            # ["Benchmark", "AssertsBefore", "AssertsLeft", "Size_Before", "Size_After", "Haploid_Time", "Z3_Time_Before", "Z3_Time_After", "Boolector_Time_Before", "Boolector_Time_After", "CVC5_Time_Before", "CVC5_Time_After", "Z3_Speedup", "Boolector_Speedup", "CVC5_Speedup"])
 
     # otherwise return the row data with the benchmark's filename shortened
     else:
         columns.extend([results["benchmark"].replace(prefix, ""),
-                        str(results["asserts_before"]),
-                        str(results["asserts_left"]),
+                        # str(results["asserts_before"]),
+                        # str(results["asserts_left"]),
+                        str(results["original_size"]),
+                        str(results["haploid_size"]),
                         str(results["elapsed"]),
-                        results["result"]])
+                        str(results["z3_time_before"]),
+                        str(results["z3_time_after"]),
+                        # str(results["boolector_time_before"]),
+                        # str(results["boolector_time_after"]),
+                        # str(results["cvc5_time_before"]),
+                        # str(results["cvc5_time_after"]),
+                        str(results["z3_time_before"] / results["z3_time_after"]),
+                        str(results["z3_time_before"] / (results["elapsed"] + results["z3_time_after"])),
+                        str(results["result_before"]),
+                        str(results["result_after"]),
+                        # str(results["boolector_time_before"] / (results["elapsed"] + results["boolector_time_after"])),
+                        # str(results["cvc5_time_before"] / (results["elapsed"] + results["cvc5_time_after"]))
+                        ])
 
     return ",".join(columns)
 
+def call_z3(input_file, timeout):
+    cmd = f"/home/gannet/z3/build/z3 {input_file}"
+    command = shlex.split(cmd)
+    proc = subprocess.Popen(command,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True)
+    try:
+        start_time = time.perf_counter()
+        stdout, stderr = proc.communicate(timeout=timeout)
+        end_time = time.perf_counter()
+        print("OUTPUT: ", stdout, "ERROR: ", stderr)
+        return (str(stdout), end_time - start_time)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        return ("timeout", timeout)
 
+def call_boolector(input_file, timeout):
+    cmd = f"/home/gannet/boolector/build/bin/boolector --lang=smt2 {input_file}"
+    command = shlex.split(cmd)
+    proc = subprocess.Popen(command,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True)
+    try:
+        start_time = time.perf_counter()
+        stdout, stderr = proc.communicate(timeout=timeout)
+        end_time = time.perf_counter()
+        return (str(stdout), end_time - start_time)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        print("ERROR: ", stderr)
+        return ("timeout", timeout)
+
+def call_cvc5(input_file, timeout):
+    cmd = f"/home/gannet/cvc5/build/bin/cvc5 --lang=smt2 {input_file}"
+    command = shlex.split(cmd)
+    proc = subprocess.Popen(command,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True)
+    try:
+        start_time = time.perf_counter()
+        stdout, stderr = proc.communicate(timeout=timeout)
+        end_time = time.perf_counter()
+        return (str(stdout), end_time - start_time)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        return ("timeout", timeout)
+    
 def handle_benchmark(haploid, splitter, file, timeout, prefix):
     # Get our working directory
     work_dir = tempfile.mkdtemp()
@@ -188,33 +269,73 @@ def handle_benchmark(haploid, splitter, file, timeout, prefix):
         # Run the splitter
         split_data = run_preprocessor(file, splitter, work_dir, query, timeout)
 
+        print("DIRNAME: ", os.path.split(os.path.dirname(file)))
+        dirpath = f"out/{os.path.split(os.path.dirname(file))[1]}"
+        print("dirpath: ", dirpath)
+
+        if not os.path.exists("out"):
+            os.mkdir("out")
+
+        if not os.path.exists(dirpath):
+            os.mkdir(dirpath)
+
         # Then we run Haploid
         row_data = run_preprocessor(file, haploid, work_dir,
                                     query, timeout)
+        outfile_path = f"{dirpath}/{os.path.basename(file)}"
+        outfile = open(outfile_path, "w")
+        outfile.write(row_data["stdout"])
+        outfile.close()
 
-        row_data["asserts_before"] = split_data["asserts_left"]
+        row_data["infile_path"] = file
+        row_data["outfile_path"] = outfile_path
+
+        # row_data["asserts_before"] = split_data["asserts_left"]
         row_data["result"] = "unknown"
 
-        if row_data["reached_timeout"]:
-            row_data["asserts_left"] = row_data["asserts_before"]
-            row_data["result"] = "timeout"
+        # if row_data["reached_timeout"]:
+        #    row_data["asserts_left"] = row_data["asserts_before"]
+        #    row_data["result"] = "timeout"
 
-        elif row_data["asserts_left"] == None:
-            row_data["asserts_left"] = row_data["asserts_before"]
-            row_data["result"] = "crash"
+        # elif row_data["asserts_left"] == None:
+        #    row_data["asserts_left"] = row_data["asserts_before"]
+        #    row_data["result"] = "crash"
 
-        elif "(assert false)" in row_data["stdout"]:
-            row_data["result"] = "unsat"
+        # elif "(assert false)" in row_data["stdout"]:
+        #    row_data["result"] = "unsat"
 
-        elif row_data["asserts_left"] == 0:
-            row_data["result"] = "sat"
+        # elif row_data["asserts_left"] == 0:
+        #    row_data["result"] = "sat"
 
+        row_data["original_size"] = len(row_data["stdin"].encode('utf-8'))
+        row_data["haploid_size"] = len(row_data["stdout"].encode('utf-8'))
+
+        z3_data_before = call_z3(file, timeout)
+        row_data["z3_time_before"] = z3_data_before[1]
+
+        z3_data_after = call_z3(outfile_path, timeout)
+        row_data["z3_time_after"] = z3_data_after[1]
+
+        row_data["result_before"] = z3_data_before[0].strip()
+        row_data["result_after"] = z3_data_after[0].strip()
+
+        # boolector_data_before = call_boolector(file, timeout)
+        # row_data["boolector_time_before"] = boolector_data_before[1]
+
+        # boolector_data_after = call_boolector(outfile_path, timeout)
+        # row_data["boolector_time_after"] = boolector_data_after[1]
+
+        # cvc5_data_before = call_cvc5(file, timeout)
+        # row_data["cvc5_time_before"] = cvc5_data_before[1]
+
+        # cvc5_data_after = call_cvc5(outfile_path, timeout)
+        # row_data["cvc5_time_after"] = cvc5_data_after[1]
+            
     finally:
         # Delete the work directory
         shutil.rmtree(work_dir)
 
     return results_to_row(row_data, prefix)
-
 
 def apply_callback(tup):
     # Early out for failed runs
@@ -290,8 +411,10 @@ def get_finished_runs(outfile):
 
 def main(argv):
     global OUTFILE
+    global parsed_args 
 
     args = parse_args(argv)
+    parsed_args = args
     OUTFILE = args.outfile
 
     benchmark_files = get_work_list(args.benchmarks, args.extension)
@@ -314,7 +437,7 @@ def main(argv):
         run("cargo build --release", os.getcwd())
     args.haploid = path.abspath(args.haploid)
 
-    splitter = path.abspath("./target/release/split")
+    splitter = path.abspath("./target/release/split_assert_and")
 
     # Print out header
     header = results_to_row()

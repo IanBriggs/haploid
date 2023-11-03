@@ -1,6 +1,12 @@
 # This directory will contain incremental build artifacts that you don't want to track.
 /.cargo
 
+# Don't upload SMT-LIB.
+benchmarks/QF_BV/
+
+# Don't upload optimized files / scripts / whatever.
+out/
+
 # Committing Cargo.lock is not recommended with BrazilRust because it will cause double locking with your version set.
 Cargo.lock
 
