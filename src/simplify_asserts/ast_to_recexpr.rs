@@ -123,6 +123,7 @@ fn term_to_nodes(term: &ast::Term, nodes: &mut Vec<EggSmt>) -> Id {
                         "bvmul" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryMul),
                         "bvadd" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryAdd),
                         "bvsub" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySub),
+                        "concat" => nary_to_binary_left(arg_ids, nodes, EggSmt::BvConcat),
                         
                         _ => EggSmt::Application(egg::Symbol::from(&symbol.0), arg_ids),
                     },

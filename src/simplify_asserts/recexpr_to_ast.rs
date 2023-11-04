@@ -107,6 +107,9 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::BinarySub(args) => {
             regroup_nary_left(nodes, args, "bvsub", make_extractor!(EggSmt::BinarySub))
         },
+        EggSmt::BvConcat(args) => {
+            regroup_nary_left(nodes, args, "concat", make_extractor!(EggSmt::BvConcat))
+        },
         EggSmt::BinaryNeg(args) => handle_application(nodes, "bvneg", args.as_ref()),
         EggSmt::BinaryNot(args) => handle_application(nodes, "bvnot", args.as_ref()),
 

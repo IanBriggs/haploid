@@ -72,6 +72,7 @@ define_language! {
         "bvmul" = BinaryMul([Id; 2]),
         "bvsub" = BinarySub([Id; 2]),
         "bvadd" = BinaryAdd([Id; 2]),
+        "concat" = BvConcat([Id; 2]),
 
         // Weird forms that make auto parsing fail
         "!" = Attribute(Vec<Id>), // attribute is encoded as 1 id for the body, then 2*n pairs for the attributes

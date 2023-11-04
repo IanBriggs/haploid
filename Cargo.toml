@@ -16,4 +16,3 @@ lazy_static = "1.4"
 atty = "0.2"
 unicode-segmentation = "1.9"
 smt2parser = "0.6"
-

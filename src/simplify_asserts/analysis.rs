@@ -85,13 +85,14 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::BinaryAnd([a, b]) => const_fold_binary_and(x(a), x(b)),
             EggSmt::BinaryOr([a, b]) => const_fold_binary_or(x(a), x(b)),
             EggSmt::BinaryXor([a, b]) => const_fold_binary_xor(x(a), x(b)),
-            EggSmt::BinaryMul([a, b]) => None,
+            EggSmt::BinaryMul([_a, _b]) => None,
             EggSmt::BinaryAdd([a, b]) => const_fold_binary_add(x(a), x(b)),
-            EggSmt::BinarySub([a, b]) => None,
-            EggSmt::BinaryShl([a, b]) => None,
-            EggSmt::BinaryShr([a, b]) => None,
+            EggSmt::BinarySub([_a, _b]) => None,
+            EggSmt::BinaryShl([_a, _b]) => None,
+            EggSmt::BinaryShr([_a, _b]) => None,
             EggSmt::BinaryNot([a]) => const_fold_not(x(a)),
-            EggSmt::BinaryNeg([a]) => None,
+            EggSmt::BinaryNeg([a]) => const_fold_neg(x(a)),
+            EggSmt::BvConcat([a, b]) => constant_fold_binary_concat(x(a), x(b)),
 
             // Other
             EggSmt::Attribute(packed) => egraph[packed[0]].data.clone(),
@@ -189,8 +190,12 @@ fn const_fold_implies(a: Option<&Constant>, b: Option<&Constant>) -> Option<Cons
 fn const_fold_not(a: Option<&Constant>) -> Option<Constant> {
     match a {
         Some(Constant::Boolean(a)) => Some(Constant::Boolean(!*a)),
-        // Some(Constant::Binary(a)) => Some(Constant::Binary(!a)),
-        // Some(Constant::Hexadecimal(a)) => Some(Constant::Hexadecimal(!a)),
+        Some(Constant::Binary(a)) => 
+            {
+                let mut result = a.clone();
+                result.iter_mut().for_each(|value| *value = !*value);
+                Some(Constant::Binary(result))
+            },
         _ => None,
     }
 }
@@ -353,6 +358,12 @@ fn const_fold_int_div(a: Option<&Constant>, b: Option<&Constant>) -> Option<Cons
 fn const_fold_neg(a: Option<&Constant>) -> Option<Constant> {
     match a {
         Some(Constant::Numeral(a)) => Some(Constant::Numeral(-a)),
+        Some(Constant::Binary(b)) => {
+            let result = const_fold_not(a.clone());
+            let mut boolean_vector = vec![false; b.len()];
+            *boolean_vector.last_mut().unwrap() = true;
+            const_fold_add(result.as_ref(), Some(&Constant::Binary(boolean_vector.clone())))
+        }
         _ => None,
     }
 }
@@ -446,16 +457,14 @@ fn const_fold_binary_add(a: Option<&Constant>, b: Option<&Constant>) -> Option<C
     match (a, b) {
         (Some(Constant::Binary(a)), Some(Constant::Binary(b))) => 
         {
-            let m = a.len();
-
-            if m != b.len() {
+            if a.len() != b.len() {
                 return None; // Ensure both bitvectors are of the same length
             }
         
-            let mut result = vec![false; m];
+            let mut result = vec![false; a.len()];
             let mut carry = false;
         
-            for i in (0..m).rev() {
+            for i in (0..a.len()).rev() {
                 let sum = (a[i] as u8) + (b[i] as u8) + (carry as u8);
                 result[i] = sum % 2 == 1;
                 carry = sum > 1;
@@ -465,6 +474,19 @@ fn const_fold_binary_add(a: Option<&Constant>, b: Option<&Constant>) -> Option<C
                 return None; // Overflow: Sum exceeds 2^m
             }
         
+            Some(Constant::Binary(result))
+        },
+        _ => None,
+    }
+}
+
+fn constant_fold_binary_concat(a: Option<&Constant>, b: Option<&Constant>) -> Option<Constant> {
+    match (a, b) {
+        (Some(Constant::Binary(a)), Some(Constant::Binary(b))) => 
+        {
+            let mut result = a.clone();
+            result.extend(b.iter().cloned());
+
             Some(Constant::Binary(result))
         },
         _ => None,
