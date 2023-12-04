@@ -26,9 +26,9 @@ impl egg::CostFunction<EggSmt> for EggSmtCostFn {
             EggSmt::Let(_) => 3 * base_cost,
             EggSmt::Exists(_) => 3 * base_cost,
 
-            // Shifts bad
-            EggSmt::BinaryShl(_) => 2 * base_cost,
-            EggSmt::BinaryShr(_) => 2 * base_cost,
+            // EggSmt::BinaryShl(_) => 3 * base_cost,
+            // EggSmt::BinaryShr(_) => 3 * base_cost,
+
 
             // Everything else
             _ => base_cost,

@@ -1,4 +1,4 @@
-use super::language::{EggSmt, WrappedBinary, WrappedHexadecimal};
+use super::language::{EggSmt, WrappedBinary, WrappedHexadecimal, WrappedFloat};
 use crate::simplify_asserts::language;
 use egg::{merge_option, Analysis, DidMerge, Id};
 use log::debug;
@@ -14,6 +14,7 @@ pub enum Constant {
     Numeral(BigInt),
     Decimal(smt2parser::Decimal),
     Hexadecimal(smt2parser::Hexadecimal),
+    Float(WrappedFloat),
     Binary(smt2parser::Binary),
     String(String),
     Boolean(bool),
@@ -40,7 +41,6 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::Binary(b) => Some(Constant::Binary((*b.bin).to_vec())),
             EggSmt::Boolean(b) => Some(Constant::Boolean(*b)),
             EggSmt::String(s) => Some(Constant::String(s.clone())),
-
             // Non-Constant Atom
             EggSmt::Symbol(_) => None,
 
@@ -82,17 +82,40 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::GreaterThanEqual([a, b]) => const_fold_greater_than_equal(x(a), x(b)),
 
             // Binary Operators
+
+            EggSmt::BvConcat([a, b]) => constant_fold_binary_concat(x(a), x(b)),
+            EggSmt::BinaryNot([a]) => const_fold_not(x(a)),
             EggSmt::BinaryAnd([a, b]) => const_fold_binary_and(x(a), x(b)),
             EggSmt::BinaryOr([a, b]) => const_fold_binary_or(x(a), x(b)),
-            EggSmt::BinaryXor([a, b]) => const_fold_binary_xor(x(a), x(b)),
-            EggSmt::BinaryMul([_a, _b]) => None,
-            EggSmt::BinaryAdd([a, b]) => const_fold_binary_add(x(a), x(b)),
-            EggSmt::BinarySub([_a, _b]) => None,
-            EggSmt::BinaryShl([_a, _b]) => None,
-            EggSmt::BinaryShr([_a, _b]) => None,
-            EggSmt::BinaryNot([a]) => const_fold_not(x(a)),
             EggSmt::BinaryNeg([a]) => const_fold_neg(x(a)),
-            EggSmt::BvConcat([a, b]) => constant_fold_binary_concat(x(a), x(b)),
+            EggSmt::BinaryAdd([a, b]) => None,
+            EggSmt::BinaryMul([a, b]) => None,
+            
+            // EggSmt::BinaryUDiv([_a, _b]) => None,
+            // EggSmt::BinaryURem([a, b]) => None,
+            // EggSmt::BinaryShl([a, b]) => None,
+            // EggSmt::BinaryShr([a, b]) => None,
+            EggSmt::BinaryULt([a, b]) => None,
+
+            EggSmt::BinaryNAnd([a, b]) => None,
+            EggSmt::BinaryNOr([a, b]) => None,
+            EggSmt::BinaryXor([a, b]) => None,
+            EggSmt::BinaryNXor([a, b]) => None,
+            EggSmt::BinaryComp([a, b]) => None,
+        
+            // EggSmt::BinarySub([a, b]) => None,
+            // EggSmt::BinarySDiv([a, b]) => None,
+            // EggSmt::BinarySRem([a, b]) => None,
+            // EggSmt::BinarySMod([a, b]) => None,
+            // EggSmt::BinaryAShr([a, b]) => None,
+            
+            EggSmt::BinaryULess([a, b]) => None,
+            EggSmt::BinaryUGreater([a, b]) => None,
+            EggSmt::BinaryUGeq([a, b]) => None,
+            EggSmt::BinarySLess([a, b]) => None,
+            EggSmt::BinarySLeq([a, b]) => None,
+            EggSmt::BinarySGreater([a, b]) => None,
+            EggSmt::BinarySGeq([a, b]) => None,
 
             // Other
             EggSmt::Attribute(packed) => egraph[packed[0]].data.clone(),
@@ -103,6 +126,7 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::Identifier(_) => None,
             EggSmt::IdentifierApplication(_) => None,
             EggSmt::Application(_, _) => None,
+            EggSmt::Float(_) => None,
 
             // Contradiction
             EggSmt::Contradiction(_) => None,
@@ -130,6 +154,7 @@ impl Analysis<EggSmt> for Eval {
         let class = egraph[id].clone();
         if let Some(c) = class.data {
             let enode = match c {
+                Constant::Float(f) => EggSmt::Float(f),
                 Constant::Boolean(b) => EggSmt::Boolean(b),
                 Constant::Numeral(n) => match n.sign() {
                     Sign::Plus => EggSmt::Numeral(n.to_biguint().unwrap()),

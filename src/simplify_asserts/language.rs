@@ -18,6 +18,7 @@ define_language! {
         // Atoms
         Numeral(smt2parser::Numeral),
         Decimal(smt2parser::Decimal),
+        Float(WrappedFloat),
         Hexadecimal(WrappedHexadecimal),
         Binary(WrappedBinary),
         Boolean(bool),
@@ -62,17 +63,41 @@ define_language! {
         ">=" = GreaterThanEqual([Id; 2]),
 
         // Binary Operators
+        "concat" = BvConcat([Id; 2]),
+        "bvnot" = BinaryNot([Id; 1]),
         "bvand" = BinaryAnd([Id; 2]),
         "bvor" = BinaryOr([Id; 2]),
-        "bvxor" = BinaryXor([Id; 2]),
-        "bvnot" = BinaryNot([Id; 1]),
         "bvneg" = BinaryNeg([Id; 1]),
-        "bvlshr" = BinaryShr([Id; 2]),
-        "bvshl" = BinaryShl([Id; 2]),
-        "bvmul" = BinaryMul([Id; 2]),
-        "bvsub" = BinarySub([Id; 2]),
         "bvadd" = BinaryAdd([Id; 2]),
-        "concat" = BvConcat([Id; 2]),
+        "bvmul" = BinaryMul([Id; 2]),
+        
+        // "bvudiv" = BinaryUDiv([Id; 2]),
+        // "bvurem" = BinaryURem([Id; 2]),
+        // "bvshl" = BinaryShl([Id; 2]),
+        // "bvlshr" = BinaryShr([Id; 2]),
+
+        "bvult" = BinaryULt([Id; 2]),
+        "bvnand" = BinaryNAnd([Id; 2]),
+        "bvnor" = BinaryNOr([Id; 2]),
+        "bvxor" = BinaryXor([Id; 2]),
+        "bvxnor" = BinaryNXor([Id; 2]),
+        "bvcomp" = BinaryComp([Id; 2]),
+
+        /*
+        "bvsub" = BinarySub([Id; 2]),
+        "bvsdiv" = BinarySDiv([Id; 2]),
+        "bvsrem" = BinarySRem([Id; 2]),
+        "bvsmod" = BinarySMod([Id; 2]),
+        "bvashr" = BinaryAShr([Id; 2]),
+        */
+    
+        "bvule" = BinaryULess([Id; 2]),
+        "bvugt" = BinaryUGreater([Id; 2]),
+        "bvuge" = BinaryUGeq([Id; 2]),
+        "bvslt" = BinarySLess([Id; 2]),
+        "bvsle" = BinarySLeq([Id; 2]),
+        "bvsgt" = BinarySGreater([Id; 2]),
+        "bvsge" = BinarySGeq([Id; 2]),
 
         // Weird forms that make auto parsing fail
         "!" = Attribute(Vec<Id>), // attribute is encoded as 1 id for the body, then 2*n pairs for the attributes
@@ -89,6 +114,78 @@ define_language! {
 
         // This is a poison value used to indicate that a contradiction was found during simplification
         Contradiction(Contradiction),
+    }
+}
+
+// +---------------------------------------------------------------------------------------------+
+// | WrappedFloat                                                                                |
+// +---------------------------------------------------------------------------------------------+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct WrappedFloat {
+    pub sign: WrappedBitvector,
+    pub eb: WrappedBitvector,
+    pub sb: WrappedBitvector,
+}
+
+#[derive(Debug)]
+pub struct ParseWrappedFloatError(String);
+
+impl std::fmt::Display for WrappedFloat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(fp {} {} {})", self.sign, self.eb, self.sb)
+    }
+}
+
+impl std::str::FromStr for WrappedFloat {
+    type Err = ParseWrappedFloatError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // split the string into the 3 parts
+        let mut parts = s.split_whitespace();
+        let _ = parts.next().unwrap(); // skip the (fp
+        let sign = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
+        let eb = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
+        let sb = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
+        let _ = parts.next().unwrap(); // skip the )
+        Ok(WrappedFloat { sign, eb, sb })
+    }
+}
+
+// +---------------------------------------------------------------------------------------------+
+// | WrappedBitvector                                                                            |
+// +---------------------------------------------------------------------------------------------+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub enum WrappedBitvector {
+    Binary(WrappedBinary),
+    Hexadecimal(WrappedHexadecimal),
+}
+
+#[derive(Debug)]
+pub struct ParseWrappedBitvectorError(String);
+
+impl std::fmt::Display for WrappedBitvector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WrappedBitvector::Binary(bin) => write!(f, "{}", bin),
+            WrappedBitvector::Hexadecimal(hex) => write!(f, "{}", hex),
+        }
+    }
+}
+
+impl std::str::FromStr for WrappedBitvector {
+    type Err = ParseWrappedBitvectorError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.parse::<WrappedBinary>() {
+            Ok(bin) => Ok(WrappedBitvector::Binary(bin)),
+            Err(_) => match s.parse::<WrappedHexadecimal>() {
+                Ok(hex) => Ok(WrappedBitvector::Hexadecimal(hex)),
+                Err(e) => Err(ParseWrappedBitvectorError(format!(
+                    "Invalid bitvector literal: '{:?}'",
+                    e
+                ))),
+            },
+        }
     }
 }
 

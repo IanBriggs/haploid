@@ -1,6 +1,7 @@
 use super::language::EggSmt;
 use egg::Id;
 use smt2parser::concrete as ast;
+use crate::simplify_asserts::language::WrappedFloat;
 
 macro_rules! make_extractor {
     ( $e:path ) => {
@@ -28,6 +29,7 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::Hexadecimal(h) => ast::Term::Constant(ast::Constant::Hexadecimal(h.hex.clone())),
         EggSmt::Binary(b) => ast::Term::Constant(ast::Constant::Binary(b.bin.clone())),
         EggSmt::Boolean(b) => handle_boolean(*b),
+        EggSmt::Float(f) => handle_float(f.clone()),
         EggSmt::String(s) => ast::Term::Constant(ast::Constant::String(s.clone())),
         EggSmt::Symbol(sym) => ast::Term::QualIdentifier(ast::QualIdentifier::Simple {
             identifier: ast::Identifier::Simple {
@@ -82,37 +84,98 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::GreaterThan(args) => handle_application(nodes, ">", args.as_ref()),
         EggSmt::GreaterThanEqual(args) => handle_application(nodes, ">=", args.as_ref()),
 
-        // Binary Operators
+        EggSmt::BvConcat(args) => {
+            regroup_nary_left(nodes, args, "concat", make_extractor!(EggSmt::BvConcat))
+        },
+        EggSmt::BinaryNot(args) => handle_application(nodes, "bvnot", args.as_ref()),
         EggSmt::BinaryAnd(args) => {
             regroup_nary_left(nodes, args, "bvand", make_extractor!(EggSmt::BinaryAnd))
-        },
-        EggSmt::BinaryMul(args) => {
-            regroup_nary_left(nodes, args, "bvmul", make_extractor!(EggSmt::BinaryAnd))
         },
         EggSmt::BinaryOr(args) => {
             regroup_nary_left(nodes, args, "bvor", make_extractor!(EggSmt::BinaryOr))
         },
-        EggSmt::BinaryXor(args) => {
-            regroup_nary_left(nodes, args, "bvxor", make_extractor!(EggSmt::BinaryXor))
+        EggSmt::BinaryNeg(args) => handle_application(nodes, "bvneg", args.as_ref()),
+        EggSmt::BinaryAdd(args) => {
+            regroup_nary_left(nodes, args, "bvadd", make_extractor!(EggSmt::BinaryAdd))
         },
-        EggSmt::BinaryShr(args) => {
-            regroup_nary_left(nodes, args, "bvlshr", make_extractor!(EggSmt::BinaryShr))
+        EggSmt::BinaryMul(args) => {
+            regroup_nary_left(nodes, args, "bvmul", make_extractor!(EggSmt::BinaryMul))
+        },
+        
+        /*
+        EggSmt::BinaryUDiv(args) => {
+            regroup_nary_left(nodes, args, "bvudiv", make_extractor!(EggSmt::BinaryUDiv))
+        },
+        EggSmt::BinaryURem(args) => {
+            regroup_nary_left(nodes, args, "bvurem", make_extractor!(EggSmt::BinaryURem))
         },
         EggSmt::BinaryShl(args) => {
             regroup_nary_left(nodes, args, "bvshl", make_extractor!(EggSmt::BinaryShl))
         },
-        EggSmt::BinaryAdd(args) => {
-            regroup_nary_left(nodes, args, "bvadd", make_extractor!(EggSmt::BinaryAdd))
+        EggSmt::BinaryShr(args) => {
+            regroup_nary_left(nodes, args, "bvlshr", make_extractor!(EggSmt::BinaryShr))
         },
+        */
+
+        EggSmt::BinaryULt(args) => {
+            regroup_nary_left(nodes, args, "bvult", make_extractor!(EggSmt::BinaryULt))
+        },
+        EggSmt::BinaryNAnd(args) => {
+            regroup_nary_left(nodes, args, "bvnand", make_extractor!(EggSmt::BinaryNAnd))
+        },
+        EggSmt::BinaryNOr(args) => {
+            regroup_nary_left(nodes, args, "bvnor", make_extractor!(EggSmt::BinaryNOr))
+        },
+        EggSmt::BinaryXor(args) => {
+            regroup_nary_left(nodes, args, "bvxor", make_extractor!(EggSmt::BinaryXor))
+        },
+        EggSmt::BinaryNXor(args) => {
+            regroup_nary_left(nodes, args, "bvxnor", make_extractor!(EggSmt::BinaryNXor))
+        },
+        EggSmt::BinaryComp(args) => {
+            regroup_nary_left(nodes, args, "bvcomp", make_extractor!(EggSmt::BinaryComp))
+        },
+
+        /*
         EggSmt::BinarySub(args) => {
             regroup_nary_left(nodes, args, "bvsub", make_extractor!(EggSmt::BinarySub))
         },
-        EggSmt::BvConcat(args) => {
-            regroup_nary_left(nodes, args, "concat", make_extractor!(EggSmt::BvConcat))
+        EggSmt::BinarySDiv(args) => {
+            regroup_nary_left(nodes, args, "bvsdiv", make_extractor!(EggSmt::BinarySDiv))
         },
-        EggSmt::BinaryNeg(args) => handle_application(nodes, "bvneg", args.as_ref()),
-        EggSmt::BinaryNot(args) => handle_application(nodes, "bvnot", args.as_ref()),
+        EggSmt::BinarySRem(args) => {
+            regroup_nary_left(nodes, args, "bvsrem", make_extractor!(EggSmt::BinarySRem))
+        },
+        EggSmt::BinarySMod(args) => {
+            regroup_nary_left(nodes, args, "bvsmod", make_extractor!(EggSmt::BinarySMod))
+        },
+        EggSmt::BinaryAShr(args) => {
+            regroup_nary_left(nodes, args, "bvashr", make_extractor!(EggSmt::BinaryAShr))
+        },
+        */
 
+        EggSmt::BinaryULess(args) => {
+            regroup_nary_left(nodes, args, "bvule", make_extractor!(EggSmt::BinaryULess))
+        },
+        EggSmt::BinaryUGreater(args) => {
+            regroup_nary_left(nodes, args, "bvugt", make_extractor!(EggSmt::BinaryUGreater))
+        },
+        EggSmt::BinaryUGeq(args) => {
+            regroup_nary_left(nodes, args, "bvuge", make_extractor!(EggSmt::BinaryUGeq))
+        },
+        EggSmt::BinarySLess(args) => {
+            regroup_nary_left(nodes, args, "bvslt", make_extractor!(EggSmt::BinarySLess))
+        },
+        EggSmt::BinarySLeq(args) => {
+            regroup_nary_left(nodes, args, "bvsle", make_extractor!(EggSmt::BinarySLeq))
+        },
+        EggSmt::BinarySGreater(args) => {
+            regroup_nary_left(nodes, args, "bvsgt", make_extractor!(EggSmt::BinarySGreater))
+        },
+        EggSmt::BinarySGeq(args) => {
+            regroup_nary_left(nodes, args, "bvsge", make_extractor!(EggSmt::BinarySGeq))
+        },
+        
         // Other
         EggSmt::Attribute(packed) => handle_attribute(nodes, packed),
         EggSmt::AttributeValue(_) => {
@@ -213,6 +276,14 @@ fn handle_boolean(b: bool) -> ast::Term {
             } else {
                 "false".to_string()
             }),
+        },
+    })
+}
+
+fn handle_float(f: WrappedFloat) -> ast::Term {
+    ast::Term::QualIdentifier(ast::QualIdentifier::Simple {
+        identifier: ast::Identifier::Simple {
+            symbol: ast::Symbol(f.to_string()),
         },
     })
 }
