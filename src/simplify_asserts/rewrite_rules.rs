@@ -25,6 +25,7 @@ pub fn expansion_rules<A: Analysis<EggSmt>>() -> Vec<Rewrite<EggSmt, A>> {
         rewrite! {"deimplicate";         "(=> ?a ?b)"           => "(or (not ?a) ?b)"},
         rewrite! {"commutative_eq";      "(= ?a ?b)"            => "(= ?b ?a)"},
         rewrite! {"yash_pote";   "(or (and ?a ?b) (and ?a ?c))" => "(and ?a (or ?b ?c))"},
+
         // BV rewrites
         rewrite! {"associative_bv_and";     "(bvand (bvand ?p ?q) ?r)" => "(bvand ?p (bvand ?q ?r))"},
         rewrite! {"associative_bv_or";      "(bvor (bvor ?p ?q) ?r)"   => "(bvor ?p (bvor ?q ?r))"},
@@ -38,9 +39,9 @@ pub fn expansion_rules<A: Analysis<EggSmt>>() -> Vec<Rewrite<EggSmt, A>> {
         rewrite! {"bv_reduce"; "(bvor ?a (bvand ?b ?a))" => "?a"},
         rewrite! {"bv_reduce_2"; "(bvand ?b (bvor ?b ?a))" => "?b"},
         rewrite! {"expand_or"; "(bvor ?b ?a)" => "(bvor (bvand ?b (bvnot ?a)) ?a)"},
-
         rewrite! {"bvnot_expand"; "?a" => "(bvnot (bvnot ?a))"},
         rewrite! {"bvmul_by_1"; "(bvmul 1 ?a)" => "?a"}
+
     ]
 }
 
@@ -88,8 +89,13 @@ pub fn reduction_rules<A: Analysis<EggSmt>>() -> Vec<Rewrite<EggSmt, A>> {
         rewrite! {"bvor_collapse"; "(bvor ?a ?a)" => "?a"},
         rewrite! {"bvnot_collapse"; "(bvnot (bvnot ?a))" => "?a"},
         rewrite! {"bvmul_by_1_collapse"; "(bvmul 1 ?a)" => "?a"},
-        rewrite! {"bvor_collapse"; "(bvor 0 ?a)" => "?a"},
+        rewrite! {"bvor_collapse_2"; "(bvor 0 ?a)" => "?a"},
         rewrite! {"reduce_bvand_bvor"; "(bvand ?b (bvor ?b ?a))" => "?b"},
-        rewrite! {"reduce_bvor_bvand"; "(bvor ?a (bvand ?b ?a))" => "?a"}
+        rewrite! {"reduce_bvor_bvand"; "(bvor ?a (bvand ?b ?a))" => "?a"},
+
+        // Float rewrites (https://ztatlock.net/pubs/2022-ecoop-cakemlfp/2022-ecoop-cakemlfp.pdf)
+        // rewrite! {"mult_by_2"; "(fp.mul ?a 2)" => "(fp.add ?a ?a)"},
+        rewrite! {"distribute_negation_mul"; "(fp.neg (fp.mul ?c ?a ?b))" => "(fp.mul ?c ?a (fp.neg ?b))"},
+        rewrite! {"distribute_negation_add"; "(fp.add ?c ?b (fp.neg ?a))" => "(fp.sub ?c ?b ?a)"},
     ]
 }

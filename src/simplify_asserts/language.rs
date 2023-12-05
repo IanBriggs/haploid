@@ -71,11 +71,6 @@ define_language! {
         "bvadd" = BinaryAdd([Id; 2]),
         "bvmul" = BinaryMul([Id; 2]),
         
-        // "bvudiv" = BinaryUDiv([Id; 2]),
-        // "bvurem" = BinaryURem([Id; 2]),
-        // "bvshl" = BinaryShl([Id; 2]),
-        // "bvlshr" = BinaryShr([Id; 2]),
-
         "bvult" = BinaryULt([Id; 2]),
         "bvnand" = BinaryNAnd([Id; 2]),
         "bvnor" = BinaryNOr([Id; 2]),
@@ -83,14 +78,6 @@ define_language! {
         "bvxnor" = BinaryNXor([Id; 2]),
         "bvcomp" = BinaryComp([Id; 2]),
 
-        /*
-        "bvsub" = BinarySub([Id; 2]),
-        "bvsdiv" = BinarySDiv([Id; 2]),
-        "bvsrem" = BinarySRem([Id; 2]),
-        "bvsmod" = BinarySMod([Id; 2]),
-        "bvashr" = BinaryAShr([Id; 2]),
-        */
-    
         "bvule" = BinaryULess([Id; 2]),
         "bvugt" = BinaryUGreater([Id; 2]),
         "bvuge" = BinaryUGeq([Id; 2]),
@@ -99,6 +86,24 @@ define_language! {
         "bvsgt" = BinarySGreater([Id; 2]),
         "bvsge" = BinarySGeq([Id; 2]),
 
+        // floating point operators
+        "fp.abs" = FpAbs([Id; 1]),
+        "fp.neg" = FpNeg([Id; 1]),
+
+        "fp.add" = FpAdd([Id; 3]),
+        "fp.sub" = FpSub([Id; 3]),
+        "fp.mul" = FpMul([Id; 3]),
+        "fp.div" = FpDiv([Id; 3]),
+
+        // fp comparators
+        /*
+        "fp.leq" = FpLeq([Id; 2]),
+        "fp.lt" = FpLt([Id; 2]),
+        "fp.geq" = FpGeq([Id; 2]),
+        "fp.gt" = FpGt([Id; 2]),
+        "fp.eq" = FpEq([Id; 2]),
+        */
+        
         // Weird forms that make auto parsing fail
         "!" = Attribute(Vec<Id>), // attribute is encoded as 1 id for the body, then 2*n pairs for the attributes
         AttributeValue(WrappedAttributeValue), // Just store the attribute values
@@ -132,7 +137,8 @@ pub struct ParseWrappedFloatError(String);
 
 impl std::fmt::Display for WrappedFloat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(fp {} {} {})", self.sign, self.eb, self.sb)
+        write!(f, "(fp {} {} {})", self.sign, self.eb, self.sb)?;
+        Ok(())
     }
 }
 
@@ -140,14 +146,23 @@ impl std::str::FromStr for WrappedFloat {
     type Err = ParseWrappedFloatError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // split the string into the 3 parts
-        let mut parts = s.split_whitespace();
-        let _ = parts.next().unwrap(); // skip the (fp
-        let sign = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
-        let eb = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
-        let sb = parts.next().unwrap().parse::<WrappedBitvector>().unwrap();
-        let _ = parts.next().unwrap(); // skip the )
-        Ok(WrappedFloat { sign, eb, sb })
+        let re = Regex::new(r"\(fp (\w+) (\w+) (\w+)\)").expect("Failed to create regex");
+        if let Some(capture) = re.captures(s) {
+            let sgn = capture.get(1).unwrap().as_str();
+            let exp = capture.get(2).unwrap().as_str();
+            let sig = capture.get(3).unwrap().as_str();
+
+            Ok(WrappedFloat {
+                sign: WrappedBitvector::from_str(sgn).unwrap(),
+                eb: WrappedBitvector::from_str(exp).unwrap(),
+                sb: WrappedBitvector::from_str(sig).unwrap(),
+            })
+        } else {
+            Err(ParseWrappedFloatError(format!(
+                "Invalid float literal: '{}'",
+                s
+            )))
+        }
     }
 }
 
@@ -166,9 +181,10 @@ pub struct ParseWrappedBitvectorError(String);
 impl std::fmt::Display for WrappedBitvector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            WrappedBitvector::Binary(bin) => write!(f, "{}", bin),
-            WrappedBitvector::Hexadecimal(hex) => write!(f, "{}", hex),
+            WrappedBitvector::Binary(bin) => write!(f, "{}", bin)?,
+            WrappedBitvector::Hexadecimal(hex) => write!(f, "{}", hex)?,
         }
+        Ok(())
     }
 }
 

@@ -41,6 +41,7 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::Binary(b) => Some(Constant::Binary((*b.bin).to_vec())),
             EggSmt::Boolean(b) => Some(Constant::Boolean(*b)),
             EggSmt::String(s) => Some(Constant::String(s.clone())),
+            EggSmt::Float(f) => Some(Constant::Float(f.clone())),
             // Non-Constant Atom
             EggSmt::Symbol(_) => None,
 
@@ -82,7 +83,6 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::GreaterThanEqual([a, b]) => const_fold_greater_than_equal(x(a), x(b)),
 
             // Binary Operators
-
             EggSmt::BvConcat([a, b]) => constant_fold_binary_concat(x(a), x(b)),
             EggSmt::BinaryNot([a]) => const_fold_not(x(a)),
             EggSmt::BinaryAnd([a, b]) => const_fold_binary_and(x(a), x(b)),
@@ -90,11 +90,7 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::BinaryNeg([a]) => const_fold_neg(x(a)),
             EggSmt::BinaryAdd([a, b]) => None,
             EggSmt::BinaryMul([a, b]) => None,
-            
-            // EggSmt::BinaryUDiv([_a, _b]) => None,
-            // EggSmt::BinaryURem([a, b]) => None,
-            // EggSmt::BinaryShl([a, b]) => None,
-            // EggSmt::BinaryShr([a, b]) => None,
+    
             EggSmt::BinaryULt([a, b]) => None,
 
             EggSmt::BinaryNAnd([a, b]) => None,
@@ -103,12 +99,6 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::BinaryNXor([a, b]) => None,
             EggSmt::BinaryComp([a, b]) => None,
         
-            // EggSmt::BinarySub([a, b]) => None,
-            // EggSmt::BinarySDiv([a, b]) => None,
-            // EggSmt::BinarySRem([a, b]) => None,
-            // EggSmt::BinarySMod([a, b]) => None,
-            // EggSmt::BinaryAShr([a, b]) => None,
-            
             EggSmt::BinaryULess([a, b]) => None,
             EggSmt::BinaryUGreater([a, b]) => None,
             EggSmt::BinaryUGeq([a, b]) => None,
@@ -117,6 +107,20 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::BinarySGreater([a, b]) => None,
             EggSmt::BinarySGeq([a, b]) => None,
 
+            // Float
+            EggSmt::FpAbs([a]) => None,
+            EggSmt::FpNeg([a]) => None,
+            EggSmt::FpAdd([a, b, c]) => None,
+            EggSmt::FpSub([a, b, c]) => None,
+            EggSmt::FpMul([a, b, c]) => None,
+            EggSmt::FpDiv([a, b, c]) => None,
+            /*
+            EggSmt::FpLeq([a, b]) => None,
+            EggSmt::FpLt([a, b]) => None,
+            EggSmt::FpGeq([a, b]) => None,
+            EggSmt::FpGt([a, b]) => None,
+            EggSmt::FpEq([a, b]) => None,
+            */
             // Other
             EggSmt::Attribute(packed) => egraph[packed[0]].data.clone(),
             EggSmt::AttributeValue(_) => None,
@@ -126,7 +130,6 @@ impl Analysis<EggSmt> for Eval {
             EggSmt::Identifier(_) => None,
             EggSmt::IdentifierApplication(_) => None,
             EggSmt::Application(_, _) => None,
-            EggSmt::Float(_) => None,
 
             // Contradiction
             EggSmt::Contradiction(_) => None,

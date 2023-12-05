@@ -101,22 +101,6 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::BinaryMul(args) => {
             regroup_nary_left(nodes, args, "bvmul", make_extractor!(EggSmt::BinaryMul))
         },
-        
-        /*
-        EggSmt::BinaryUDiv(args) => {
-            regroup_nary_left(nodes, args, "bvudiv", make_extractor!(EggSmt::BinaryUDiv))
-        },
-        EggSmt::BinaryURem(args) => {
-            regroup_nary_left(nodes, args, "bvurem", make_extractor!(EggSmt::BinaryURem))
-        },
-        EggSmt::BinaryShl(args) => {
-            regroup_nary_left(nodes, args, "bvshl", make_extractor!(EggSmt::BinaryShl))
-        },
-        EggSmt::BinaryShr(args) => {
-            regroup_nary_left(nodes, args, "bvlshr", make_extractor!(EggSmt::BinaryShr))
-        },
-        */
-
         EggSmt::BinaryULt(args) => {
             regroup_nary_left(nodes, args, "bvult", make_extractor!(EggSmt::BinaryULt))
         },
@@ -135,25 +119,6 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::BinaryComp(args) => {
             regroup_nary_left(nodes, args, "bvcomp", make_extractor!(EggSmt::BinaryComp))
         },
-
-        /*
-        EggSmt::BinarySub(args) => {
-            regroup_nary_left(nodes, args, "bvsub", make_extractor!(EggSmt::BinarySub))
-        },
-        EggSmt::BinarySDiv(args) => {
-            regroup_nary_left(nodes, args, "bvsdiv", make_extractor!(EggSmt::BinarySDiv))
-        },
-        EggSmt::BinarySRem(args) => {
-            regroup_nary_left(nodes, args, "bvsrem", make_extractor!(EggSmt::BinarySRem))
-        },
-        EggSmt::BinarySMod(args) => {
-            regroup_nary_left(nodes, args, "bvsmod", make_extractor!(EggSmt::BinarySMod))
-        },
-        EggSmt::BinaryAShr(args) => {
-            regroup_nary_left(nodes, args, "bvashr", make_extractor!(EggSmt::BinaryAShr))
-        },
-        */
-
         EggSmt::BinaryULess(args) => {
             regroup_nary_left(nodes, args, "bvule", make_extractor!(EggSmt::BinaryULess))
         },
@@ -175,7 +140,32 @@ fn handle_term(nodes: &[EggSmt], idx: Id) -> ast::Term {
         EggSmt::BinarySGeq(args) => {
             regroup_nary_left(nodes, args, "bvsge", make_extractor!(EggSmt::BinarySGeq))
         },
-        
+
+        // Floating point operators
+        EggSmt::FpAbs(args) => handle_application(nodes, "fp.abs", args.as_ref()),
+        EggSmt::FpNeg(args) => handle_application(nodes, "fp.neg", args.as_ref()),
+
+        EggSmt::FpAdd(args) => handle_application(nodes, "fp.add", args.as_ref()),
+        EggSmt::FpSub(args) => handle_application(nodes, "fp.sub", args.as_ref()),
+        EggSmt::FpMul(args) => handle_application(nodes, "fp.mul", args.as_ref()),
+        EggSmt::FpDiv(args) => handle_application(nodes, "fp.div", args.as_ref()),
+/*
+        EggSmt::FpLeq(args) => {
+            regroup_nary_chainable(nodes, args, "fp.leq", make_extractor!(EggSmt::FpLeq))
+        },
+        EggSmt::FpLt(args) => {
+            regroup_nary_chainable(nodes, args, "fp.lt", make_extractor!(EggSmt::FpLt))
+        },
+        EggSmt::FpGeq(args) => {
+            regroup_nary_chainable(nodes, args, "fp.geq", make_extractor!(EggSmt::FpGeq))
+        },
+        EggSmt::FpGt(args) => {
+            regroup_nary_chainable(nodes, args, "fp.gt", make_extractor!(EggSmt::FpGt))
+        },
+        EggSmt::FpEq(args) => {
+            regroup_nary_chainable(nodes, args, "fp.eq", make_extractor!(EggSmt::FpEq))
+        },
+*/   
         // Other
         EggSmt::Attribute(packed) => handle_attribute(nodes, packed),
         EggSmt::AttributeValue(_) => {

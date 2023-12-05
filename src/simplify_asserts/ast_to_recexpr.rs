@@ -128,13 +128,6 @@ fn term_to_nodes(term: &ast::Term, nodes: &mut Vec<EggSmt>) -> Id {
                         "bvadd" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryAdd),
                         "bvmul" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryMul),
 
-                        /*
-                        "bvudiv" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryUDiv),
-                        "bvurem" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryURem),
-                        "bvshl" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryShl),
-                        "bvlshr" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryShr),
-                        */
-
                         "bvult" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinaryULt),
                         "bvnand" => match arg_ids.len() {
                             1 => nodes[usize::from(arg_ids[0])].clone(),
@@ -154,17 +147,6 @@ fn term_to_nodes(term: &ast::Term, nodes: &mut Vec<EggSmt>) -> Id {
                         },
                         "bvcomp" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryComp),
 
-                        /*
-                        "bvsub" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySub),
-                        "bvsdiv" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySDiv),
-                        "bvsrem" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySRem),
-                        "bvsmod" => nary_to_binary_left(arg_ids, nodes, EggSmt::BinarySMod),
-                        "bvashr" => match arg_ids.len() {
-                            1 => nodes[usize::from(arg_ids[0])].clone(),
-                            _ => nary_to_binary_left(arg_ids, nodes, EggSmt::BinaryAShr),
-                        },
-                        */
-
                         "bvule" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinaryULess),
                         "bvugt" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinaryUGreater),
                         "bvuge" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinaryUGeq),
@@ -172,6 +154,22 @@ fn term_to_nodes(term: &ast::Term, nodes: &mut Vec<EggSmt>) -> Id {
                         "bvsle" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinarySLeq),
                         "bvsgt" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinarySGreater),
                         "bvsge" => nary_to_binary_chain(arg_ids, nodes, EggSmt::BinarySGeq),
+
+                        // Floating point
+                        "fp.abs" => EggSmt::FpAbs(arg_ids.try_into().unwrap()),
+                        "fp.neg" => EggSmt::FpNeg(arg_ids.try_into().unwrap()),
+                        "fp.add" => EggSmt::FpAdd(arg_ids.try_into().unwrap()),
+                        "fp.sub" => EggSmt::FpSub(arg_ids.try_into().unwrap()),
+                        "fp.mul" => EggSmt::FpMul(arg_ids.try_into().unwrap()),
+                        "fp.div" => EggSmt::FpDiv(arg_ids.try_into().unwrap()),
+
+                        /*
+                        "fp.leq" => nary_to_binary_chain(arg_ids, nodes, EggSmt::FpLeq),
+                        "fp.lt" => nary_to_binary_chain(arg_ids, nodes, EggSmt::FpLt),
+                        "fp.geq" => nary_to_binary_chain(arg_ids, nodes, EggSmt::FpGeq),
+                        "fp.gt" => nary_to_binary_chain(arg_ids, nodes, EggSmt::FpGt),
+                        "fp.eq" => nary_to_binary_chain(arg_ids, nodes, EggSmt::FpEq),
+                        */
                         
                         _ => EggSmt::Application(egg::Symbol::from(&symbol.0), arg_ids),
                     },
@@ -342,11 +340,9 @@ fn identifier_to_nodes(iden: &ast::Identifier, nodes: &mut Vec<EggSmt>) -> Id {
         ast::Identifier::Simple { symbol } => match symbol.0.as_str() {
             "true" => EggSmt::Boolean(true),
             "false" => EggSmt::Boolean(false),
-            sym => EggSmt::Symbol(egg::Symbol::from(sym)),
-            /*
-            _ => {
+            sym => {
                 let re = Regex::new(r"\(fp (\w+) (\w+) (\w+)\)").expect("Failed to create regex");
-                if let Some(capture) = re.captures(symbol.0.as_str()) {
+                if let Some(capture) = re.captures(sym) {
                     let sgn = capture.get(1).unwrap().as_str();
                     let exp = capture.get(2).unwrap().as_str();
                     let sig = capture.get(3).unwrap().as_str();
@@ -357,10 +353,9 @@ fn identifier_to_nodes(iden: &ast::Identifier, nodes: &mut Vec<EggSmt>) -> Id {
                         sb: WrappedBitvector::from_str(sig).unwrap(),
                     })
                 } else {
-                    EggSmt::Symbol(egg::Symbol::from(symbol.0.as_str()))
+                    EggSmt::Symbol(egg::Symbol::from(sym))
                 }
             },
-            */
         },
         ast::Identifier::Indexed { symbol, indices } => {
             let mut inner = Vec::with_capacity(1 + indices.len());
