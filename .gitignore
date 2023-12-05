@@ -2,12 +2,12 @@
 /.cargo
 
 # Don't upload SMT-LIB.
-benchmarks/
-QF_BV/
-QF_FP/
-random_files/
-oldeval/
-out/
+/benchmarks/
+/QF_BV/
+/QF_FP/
+/random_files/
+/oldeval/
+/out/
 
 # Don't upload optimized files / scripts / whatever.
 out/
