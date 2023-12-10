@@ -1,0 +1,1 @@
+In addition to the steps necessary to run Haploid (described in the README), you will also need a Z3 installation and Python. I used homebrew. Benchmarks are not included in this repo because there are tens of thousands of them, but if you want to run the full benchmark suite, clone QF_BV and QF_FP from the SMT-LIB library. I have included one file, `example.smt2`. 
