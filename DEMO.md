@@ -3,3 +3,4 @@ In addition to the steps necessary to run Haploid (described in the README), you
 ````
 python3 scripts/can-haploid-solve.py example.smt2 --outfile {out.csv} --timeout {t}
 ````
+After running this command, you should be able to view the Haploid-optimized file in the `out/` subdirectory and the timing behavior in the generated `.csv`. 
