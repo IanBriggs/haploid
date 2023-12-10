@@ -88,8 +88,8 @@ pub fn reduction_rules<A: Analysis<EggSmt>>() -> Vec<Rewrite<EggSmt, A>> {
         // Added
         rewrite! {"bvor_collapse"; "(bvor ?a ?a)" => "?a"},
         rewrite! {"bvnot_collapse"; "(bvnot (bvnot ?a))" => "?a"},
-        rewrite! {"bvmul_by_1_collapse"; "(bvmul 1 ?a)" => "?a"},
-        rewrite! {"bvor_collapse_2"; "(bvor 0 ?a)" => "?a"},
+        // rewrite! {"bvmul_by_1_collapse"; "(bvmul 1 ?a)" => "?a"},
+        // rewrite! {"bvor_collapse_2"; "(bvor 0 ?a)" => "?a"},
         rewrite! {"reduce_bvand_bvor"; "(bvand ?b (bvor ?b ?a))" => "?b"},
         rewrite! {"reduce_bvor_bvand"; "(bvor ?a (bvand ?b ?a))" => "?a"},
 

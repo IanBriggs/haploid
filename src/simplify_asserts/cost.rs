@@ -29,7 +29,6 @@ impl egg::CostFunction<EggSmt> for EggSmtCostFn {
             // EggSmt::BinaryShl(_) => 3 * base_cost,
             // EggSmt::BinaryShr(_) => 3 * base_cost,
 
-
             // Everything else
             _ => base_cost,
         };

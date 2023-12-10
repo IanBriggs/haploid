@@ -1,0 +1,2 @@
+Benchmark,Size_Before,Size_After,Haploid_Time,Z3_Time_Before,Z3_Time_After,Z3_Speedup,Z3_Speedup_with_Haploid,Result_Before,Result_After
+/readelf/predicate_1898.smt2,7478,4137,0.624367811717093,8.238134309649467,0.2092537358403206,39.36911461373337,9.882343293294115,sat,sat
